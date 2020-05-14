@@ -9,8 +9,35 @@ import utils
 
 import xml.etree.ElementTree as ET
 
+def load_keywords():
+	f = open('keywords', 'r')
+	return [_.strip() for _ in f.readlines()]
+
+def remove_special_characters(abstract):
+	abstract = abstract.replace(',', '')
+	abstract = abstract.replace('.', '')
+	abstract = abstract.replace('?', '')
+	abstract = abstract.replace('\"', '')
+	abstract = abstract.replace("\'", '')
+	abstract = abstract.replace('&', ' ')
+	abstract = abstract.replace('-', ' ')
+	abstract = abstract.replace('=', ' ')
+	abstract = abstract.replace('+', ' ')
+
+	return abstract
+
 def check_for_keywords(abstract):
+	abstract = remove_special_characters(abstract)
 	abstract = abstract.strip().split(' ')
+
+	keywords = load_keywords()
+
+	count = 0
+
+	for i in keywords:
+		count += abstract.count(i)
+
+	return count
 
 def load_page():
 	try:
@@ -135,6 +162,7 @@ table_highlight_rows = []
 table_rows = []
 
 for item in tree[2:]:
+	print("###############################################")
 	print("Paper no.", count+1)
 	_, abs_link = item.attrib.popitem()
 
@@ -152,7 +180,7 @@ for item in tree[2:]:
 	paper_abs = paper_abs.replace('<p>', '')
 	# removing </p>
 	paper_abs = paper_abs.replace('</p>', '')
-	imp = check_for_keywords(paper_abs)
+	imp = check_for_keywords(paper_abs) # check if the abstract contains keywords
 	print(paper_abs)
 
 	# paper authors
@@ -165,11 +193,14 @@ for item in tree[2:]:
 	# every third string would be an author's name starting from the first
 	paper_authors = authors[::3]
 	paper_authors = ',<br>'.join(paper_authors)
-	print(paper_authors)
+	# print(paper_authors)
 
 	count += 1
 
-	row = '<tr>\n'
+	if imp > 0:
+		row = '<tr style="background-color: #ffaaaa">\n'
+	else:
+		row = '<tr>\n'
 
 	# add title cell
 	row = utils.add_title_cell(row, paper_title)
@@ -181,6 +212,17 @@ for item in tree[2:]:
 	row = utils.add_link_cell(row, paper_id)
 
 	row += '</tr>\n'
+
+	if imp > 0:
+		table_highlight_rows.append(row)
+	else:
+		table_rows.append(row)
+
+for row in table_highlight_rows:
+	html_content += row
+
+for row in table_rows:
+	html_content += row
 
 html_content += '</tbody>\n</table>\n</body>\n</html>'
 
